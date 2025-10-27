@@ -10,6 +10,7 @@ import Link from "next/link";
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState(""); // 确认密码状态
   const [message, setMessage] = useState(""); // 用于显示成功或错误消息
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -19,6 +20,13 @@ export default function Register() {
     e.preventDefault(); // 阻止表单默认提交
     setIsLoading(true);
     setMessage("");
+
+    // 简单的前端验证：检查密码和确认密码是否匹配
+    if (confirmPassword !== password) {
+      setMessage("密码和确认密码不匹配。");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch("/api/register", {
@@ -88,7 +96,24 @@ export default function Register() {
               required
               minLength={6}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-              placeholder="••••••••"
+              placeholder="请输入密码"
+            />
+          </div>
+          <div className="mb-6">
+            <label
+              className="block text-sm font-medium text-gray-700 mb-2"
+              htmlFor="confirmPassword"
+            >
+              确认密码
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              placeholder="请确认密码"
             />
           </div>
           <button
@@ -118,6 +143,14 @@ export default function Register() {
             className="font-medium text-blue-600 hover:text-blue-500"
           >
             点此登录
+          </Link>
+        </p>
+        <p className="mt-2 text-center text-sm text-gray-400">
+          <Link
+            href="mailto:pseudowang@outlook.com"
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
+            忘记密码
           </Link>
         </p>
       </div>

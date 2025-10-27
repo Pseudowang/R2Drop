@@ -12,6 +12,7 @@ export const authOptions = {
       credentials: {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
+        confirmPassword: { label: "Confirm Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -33,6 +34,11 @@ export const authOptions = {
         );
 
         if (!isPasswordValid) {
+          return null;
+        }
+
+        //添加后端密码认证
+        if (credentials.password != credentials.confirmPassword) {
           return null;
         }
 
