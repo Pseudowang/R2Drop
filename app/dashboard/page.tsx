@@ -3,9 +3,10 @@
 
 import { getServerSession } from "next-auth/next";
 // import { authOptions } from "../api/auth/[...nextauth]/route";
-import PageHeader from "../components/PageHeader";
 import { authOptions } from "../api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
+import PageHeader from "../components/PageHeader";
+import LogoutButton from "../components/LogoutButton";
 
 export default async function Dashboard() {
   // 1. 在服务端获取 session
@@ -33,6 +34,7 @@ export default async function Dashboard() {
           description="掌握上传概况、空间使用率以及安全状态信息。"
           active="dashboard"
           email={session.user?.email ?? null}
+          extra={<LogoutButton />}
         />
 
         <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">

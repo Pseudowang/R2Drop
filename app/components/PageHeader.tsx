@@ -40,12 +40,13 @@ export default function PageHeader({
         </div>
 
         <div className="rounded-2xl border border-slate-700/60 bg-slate-950/70 px-5 py-3 text-left text-sm text-slate-300">
-            <span className="block text-xs uppercase tracking-widest text-slate-500">当前用户</span>
-            <span className="mt-1 block text-base font-semibold text-sky-200">{email ?? "未登录"}</span>
+          <span className="block text-xs uppercase tracking-widest text-slate-500">当前用户</span>
+          <div className="mt-1 flex items-center justify-between gap-3">
+            <span className="text-base font-semibold text-sky-200">{email ?? "未登录"}</span>
+            {extra ?? null}
+          </div>
         </div>
       </div>
-
-      {extra ? <div className="mt-6">{extra}</div> : null}
     </header>
   );
 }
