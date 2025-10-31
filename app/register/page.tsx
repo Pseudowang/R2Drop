@@ -34,7 +34,8 @@ export default function Register() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        // 将confirmPassword 一并发送到后端
+        body: JSON.stringify({ email, password, confirmPassword }),
       });
 
       const data = await res.json();
@@ -94,7 +95,8 @@ export default function Register() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={8}
+              // minLength 属性确保前端至少输入8个字符
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
               placeholder="请输入密码"
             />

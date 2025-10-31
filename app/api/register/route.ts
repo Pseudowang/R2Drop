@@ -8,10 +8,13 @@ const prisma = new PrismaClient();
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    // 接收前端传来的参数
     const { email, password, confirmPassword } = body;
 
     const normalizedEmail =
+      // trim() 移除字符串两边的空格并且返回个新的字符串
       typeof email === "string" ? email.trim().toLowerCase() : "";
+
     const plainPassword = typeof password === "string" ? password : "";
     const plainConfirmPassword =
       typeof confirmPassword === "string" ? confirmPassword : "";
@@ -24,6 +27,7 @@ export async function POST(request: Request) {
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // 将normalizedEmail 和 emailregex 进行比对
     if (!emailRegex.test(normalizedEmail)) {
       return NextResponse.json(
         { message: "Please provide a valid email address" },
