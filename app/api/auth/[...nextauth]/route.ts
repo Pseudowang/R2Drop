@@ -45,7 +45,9 @@ export const authOptions = {
     }),
   ],
   session: {
+    // 使用Json Web Token来管理用户session
     strategy: "jwt" as const,
+    maxAge: 60 * 60 * 24 * 30,
   },
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
