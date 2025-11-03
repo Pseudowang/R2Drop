@@ -5,16 +5,15 @@ import { PutObjectCommand } from "@aws-sdk/client-s3"; // 用于上传文件到S
 import { s3Client, R2_BUCKET_NAME } from "@/lib/r2";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"; // 获取预签名URL
 import { randomUUID } from "crypto"; // 用于生成唯一文件名
-import { url } from "inspector";
 
 export async function POST(request: Request) {
   try {
-    // 1. 通过seession 验证是否登录
+    // 通过seession 验证是否登录
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.email) {
       return NextResponse.json({ error: "未授权，请先登录" }, { status: 401 });
     }
-    // 2. 从客户端获取用户名和文件类型
+    // 从客户端获取用户名和文件类型
     const body = await request.json();
     const { filename, contentType } = body;
 
@@ -24,25 +23,25 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    // 3. 生成一个唯一的S3存储键(key)
+    // 生成一个唯一的S3存储键(key)
     const uniqueKey = `uploads/${
       session.user.email
     }/${randomUUID()}/${filename}`;
 
-    // 4. 创建 PutObjectCommand
+    // 创建 PutObjectCommand
     const command = new PutObjectCommand({
       Bucket: R2_BUCKET_NAME,
       Key: uniqueKey,
       ContentType: contentType,
     });
 
-    // 5.生成预签名URL
+    // 生成预签名URL
     // 这个URL 默认有效期为 3600 秒
     const uploadUrl = await getSignedUrl(s3Client, command, {
       expiresIn: 3600,
     });
 
-    // 6. 将URL和这个文件的唯一键返回给客户端
+    // 将URL和这个文件的唯一键返回给客户端
     // 客户端需要URL来上传，我们未来需要key 来下载和删除
     return NextResponse.json(
       {

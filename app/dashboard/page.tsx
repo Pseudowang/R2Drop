@@ -6,23 +6,27 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession(); // 解构 status 和 data
+  const { data: session, status } = useSession(); // 解构 status 和 data， 并命名 data 为 session
   const router = useRouter();
 
-  // --- 文件上传逻辑（从 Hook 合并回来） ---
+  // setFile 不仅是设置一个值，还会触发组件重新渲染
+  // 并且只存储 File 对象或者null，File 是浏览器内置的类型，表示用户选择的文件, file.name file.size file.type 等属性可用
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  // 接收名为e参数，类为型 React.ChangeEvent<HTMLInputElement> 的事件处理函数, 就是文件输入框的change事件
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
+      // 如果用户选择了文件，更新状态
       setFile(e.target.files[0]);
       setMessage(""); // 清除旧消息
     }
   };
 
+  // 描述 HTML 表单的 onSubmit 事件处理函数
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); // 阻止表单默认提交行为, 如果没有的话浏览器会刷新页面并向服务器发送GET/POST请求，在单页应用中，这会导致页面属性，丢失状态
 
     if (!file) {
       setMessage("请先选择一个文件。");
@@ -33,7 +37,7 @@ export default function DashboardPage() {
     setMessage("正在上传...");
 
     try {
-      // 步骤 1: 调用我们自己的 API 来获取预签名 URL
+      // 调用我们自己的 API 来获取预签名 URL
       const presignedUrlResponse = await fetch("/api/upload", {
         method: "POST",
         headers: {
@@ -52,7 +56,7 @@ export default function DashboardPage() {
 
       const { url, key } = await presignedUrlResponse.json();
 
-      // 步骤 2: 将文件本体 PUT 到 R2 返回的预签名 URL
+      // 通过预签名URL 直接将文件PUT
       const uploadToR2Response = await fetch(url, {
         method: "PUT",
         headers: {
