@@ -8,12 +8,12 @@ export async function GET(request: Request) {
   // 获取当前session
   try {
     let session = await getServerSession(authOptions);
-    if (!session || session.user?.email) {
+    if (!session || !session.user?.email) {
       return NextResponse.json({ error: "未授权，请先登录" }, { status: 401 });
     }
 
     // 构建用户文件夹路径
-    const userPrefix = `upload/${session.user?.email}/`;
+    const userPrefix = `uploads/${session.user?.email}/`;
     // const userPrefix = "uploads/wang@wang.com/";
 
     // 创建列出对象的命令
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     // 提取并格式化文件信息
     const files = (response.Contents || []).map((item) => ({
       key: item.Key,
-      filename: item.Key?.split("/").pop,
+      filename: item.Key?.split("/").pop(),
       size: item.Size,
       lastModified: item.LastModified,
       etag: item.ETag,
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
       {
         files,
         count: files.length,
-        userEmail: "wang@wang.com",
+        userEmail: session.user.email,
       },
       { status: 200 }
     );
