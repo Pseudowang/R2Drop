@@ -156,6 +156,18 @@ export default function DashboardPage() {
               {message}
             </p>
           )}
+
+          {/* 查看文件列表按钮 */}
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <button
+              className="w-full px-4 py-3 font-semibold text-indigo-600 bg-white border-2 border-indigo-600 rounded-lg
+                hover:bg-indigo-50
+                focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50"
+              onClick={() => router.push("/files")}
+            >
+              查看我的文件
+            </button>
+          </div>
         </div>
         {/* --- 文件上传表单结束 --- */}
       </div>
