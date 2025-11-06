@@ -22,6 +22,10 @@ export default function FileItem() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 下载和删除状态管理
+  const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
+  const [deletingKey, setdeletingKey] = useState<string | null>(null);
+
   // 获取文件列表
   useEffect(() => {
     // useEffect 在组件加载时获取文件列表，当status 和 router 变化时，重新执行
@@ -92,6 +96,43 @@ export default function FileItem() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
   };
 
+  // 处理下载
+  const handleDownload = async (key: string, filename: string) => {
+    setDownloadingKey(key);
+    setError(null);
+
+    try {
+      //调用 下载链接
+      const response = await fetch("/api/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key,
+        }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`无法获取下载链接: ${error.message}`);
+      }
+
+      const { url } = await response.json();
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error: any) {
+      console.error("下载失败");
+      setError(error.error);
+    } finally {
+      setIsLoading(false);
+      setDownloadingKey(null); //清理下载状态
+    }
+  };
+
+  // 处理删除
+
   // --- 主界面渲染开始 ---
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-50 p-8">
@@ -133,8 +174,11 @@ export default function FileItem() {
                   >
                     最后修改
                   </th>
-                  <th scope="col" className="relative px-6 py-3">
-                    <span className="sr-only">操作</span>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide"
+                  >
+                    操作
                   </th>
                 </tr>
               </thead>
@@ -153,13 +197,24 @@ export default function FileItem() {
                         {new Date(file.lastModified).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <a
-                          href="#"
-                          className="text-indigo-600 hover:text-indigo-900"
-                        >
-                          下载
-                        </a>
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={() =>
+                              handleDownload(file.key, file.filename)
+                            }
+                            disabled={
+                              downloadingKey === file.key ||
+                              deletingKey === file.key
+                            }
+                            className="cursor-pointer text-indigo-600 hover:text-indigo-900 disabled:text-gray-400 disabled:cursor-wait"
+                          >
+                            {downloadingKey === file.key ? "下载中..." : "下载"}
+                          </button>
+                        {/* </div> */}
+                        <button className="cursor-pointer">删除</button>
+                        </div>
                       </td>
+                      
                     </tr>
                   ))
                 ) : (
