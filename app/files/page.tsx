@@ -132,7 +132,7 @@ export default function FileItem() {
   };
 
   // 处理删除
-  
+
   // --- 主界面渲染开始 ---
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-50 p-8">
@@ -206,12 +206,12 @@ export default function FileItem() {
                               downloadingKey === file.key ||
                               deletingKey === file.key
                             }
-                            className="text-indigo-600 hover:text-indigo-900 disabled:text-gray-400 disabled:cursor-wait"
+                            className="cursor-pointer text-indigo-600 hover:text-indigo-900 disabled:text-gray-400 disabled:cursor-wait"
                           >
                             {downloadingKey === file.key ? "下载中..." : "下载"}
                           </button>
                         {/* </div> */}
-                        <button>删除</button>
+                        <button className="cursor-pointer">删除</button>
                         </div>
                       </td>
                       
