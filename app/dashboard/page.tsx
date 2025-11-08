@@ -72,9 +72,11 @@ export default function DashboardPage() {
       // 成功！
       setMessage(`文件上传成功！Key: ${key}`);
       setFile(null); // 清空文件选择
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("上传失败:", error);
-      setMessage(`上传失败: ${error.message}`);
+      setMessage(
+        `上传失败: ${error instanceof Error ? error.message : String(error)}`
+      );
     } finally {
       setIsLoading(false);
     }

@@ -14,7 +14,7 @@ interface FileItem {
 }
 
 export default function FileItem() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
 
   // 状态管理
@@ -24,7 +24,7 @@ export default function FileItem() {
 
   // 下载和删除状态管理
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
-  const [deletingKey, setdeletingKey] = useState<string | null>(null);
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
 
   // 获取文件列表
   useEffect(() => {
@@ -42,9 +42,9 @@ export default function FileItem() {
           }
           const data = await response.json();
           setFiles(data.files);
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error("获取文件列表失败: ", error);
-          setError(error.message);
+          setError(error instanceof Error ? error.message : String(error));
         } finally {
           setIsLoading(false); // 无论成功失败，都需要结束加载状态
         }
@@ -106,9 +106,7 @@ export default function FileItem() {
       const response = await fetch("/api/download", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          key,
-        }),
+        body: JSON.stringify({ key }),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -122,9 +120,9 @@ export default function FileItem() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch (error: any) {
-      console.error("下载失败");
-      setError(error.error);
+    } catch (error: unknown) {
+      console.error("下载失败: ", error);
+      setError(error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
       setDownloadingKey(null); //清理下载状态
@@ -132,6 +130,30 @@ export default function FileItem() {
   };
 
   // 处理删除
+  const handleDelete = async (key: string) => {
+    setDeletingKey(key);
+    setError(null);
+
+    try {
+      // 调用 删除api
+      const response = await fetch("/api/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`删除文件失败: ${error.message}`);
+      }
+      // 从 UI 实时移除文件
+      setFiles((prevFiles) => prevFiles.filter((file) => file.key !== key));
+    } catch (error: unknown) {
+      console.error("删除失败: ", error);
+      setError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setDeletingKey(null);
+    }
+  };
 
   // --- 主界面渲染开始 ---
   return (
@@ -210,11 +232,18 @@ export default function FileItem() {
                           >
                             {downloadingKey === file.key ? "下载中..." : "下载"}
                           </button>
-                        {/* </div> */}
-                        <button className="cursor-pointer">删除</button>
+                          <button
+                            onClick={() => handleDelete(file.key)}
+                            disabled={
+                              deletingKey === file.key ||
+                              downloadingKey === file.key
+                            }
+                            className="cursor-pointer text-red-500 hover:text-red-900 disabled:text-gray-400 disabled:cursor-wait"
+                          >
+                            {deletingKey === file.key ? "删除中..." : "删除"}
+                          </button>
                         </div>
                       </td>
-                      
                     </tr>
                   ))
                 ) : (

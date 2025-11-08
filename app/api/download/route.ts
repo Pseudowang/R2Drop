@@ -44,10 +44,13 @@ export async function POST(request: Request) {
 
     // 将URL 返回给前端
     return NextResponse.json({ url: downloadUrl }, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("获取下载链接失败", error);
     return NextResponse.json(
-      { error: "服务器内部错误", details: error.message },
+      {
+        error: "服务器内部错误",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
