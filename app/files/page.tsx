@@ -14,7 +14,7 @@ interface FileItem {
 }
 
 export default function FileItem() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
 
   // 状态管理
@@ -42,9 +42,9 @@ export default function FileItem() {
           }
           const data = await response.json();
           setFiles(data.files);
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error("获取文件列表失败: ", error);
-          setError(error.message);
+          setError(error instanceof Error ? error.message : String(error));
         } finally {
           setIsLoading(false); // 无论成功失败，都需要结束加载状态
         }
@@ -120,9 +120,9 @@ export default function FileItem() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch (error: any) {
-      console.error("下载失败");
-      setError(error.error);
+    } catch (error: unknown) {
+      console.error("下载失败: ", error);
+      setError(error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
       setDownloadingKey(null); //清理下载状态
@@ -147,7 +147,12 @@ export default function FileItem() {
       }
       // 从 UI 实时移除文件
       setFiles((prevFiles) => prevFiles.filter((file) => file.key !== key));
-    } catch (error: any) {}
+    } catch (error: unknown) {
+      console.error("删除失败: ", error);
+      setError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setDeletingKey(null);
+    }
   };
 
   // --- 主界面渲染开始 ---

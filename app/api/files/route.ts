@@ -4,10 +4,10 @@ import { ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { s3Client, R2_BUCKET_NAME } from "@/lib/r2";
 import { authOptions } from "../auth/[...nextauth]/route";
 
-export async function GET(request: Request) {
+export async function GET() {
   // 获取当前session
   try {
-    let session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions);
     if (!session || !session.user?.email) {
       return NextResponse.json({ error: "未授权，请先登录" }, { status: 401 });
     }
@@ -42,12 +42,12 @@ export async function GET(request: Request) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("获取文件列表失败:", error);
     return NextResponse.json(
       {
         error: "服务器内部错误",
-        details: error.message,
+        details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
     );
