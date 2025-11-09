@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build --turbopack",
     "postinstall": "prisma generate",
     "migrate:deploy": "prisma migrate deploy",
+    "build": "npm run migrate:deploy && next build --turbopack",
     "dev": "next dev --turbopack",
     "start": "next start",
     "lint": "eslint"
