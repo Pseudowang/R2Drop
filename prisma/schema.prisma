@@ -11,7 +11,9 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL") //运行时走池化 6543 Transaction Pooler
+  directUrl = env("DIRECT_URL") // 迁移时走直连 5432 Session Pooler
+  shadowDatabaseUrl  = env("SHADOW_DATABASE_URL")  // 影子库直连 5432 Session Pooler
 }
 
 model User {
