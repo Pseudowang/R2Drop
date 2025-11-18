@@ -7,6 +7,7 @@ import { formatBytes } from "@/lib/formatBytes";
 import { FileItem } from "@/app/types/file";
 import { useFileOperations } from "@/app/hooks/useFileOperations";
 import { FileTableRow } from "./components/FileTableRow";
+import { FileTableHeader } from "./components/FileTableHeader";
 import Link from "next/link";
 
 export default function FilesPage() {
@@ -169,43 +170,11 @@ export default function FilesPage() {
         {!isLoading && !error && (
           <div className="overflow-x-auto rounded-lg border border-gray-200">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="p-4">
-                    <input
-                      type="checkbox"
-                      className="checkbox checkbox-xs rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                      onChange={handleSelectAll}
-                      checked={isAllSelected}
-                      disabled={isBulkDeleting}
-                    />
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide"
-                  >
-                    文件名
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide"
-                  >
-                    大小
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide"
-                  >
-                    最后修改
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide"
-                  >
-                    操作
-                  </th>
-                </tr>
-              </thead>
+              <FileTableHeader
+                isAllSelected={isAllSelected}
+                isBulkDeleting={isBulkDeleting}
+                onSelectAll={handleSelectAll}
+              />
               <tbody className="bg-white divide-y divide-gray-200">
                 {files.length > 0 ? (
                   files.map((file) => (
