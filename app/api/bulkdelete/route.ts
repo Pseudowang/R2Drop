@@ -28,7 +28,7 @@ export async function DELETE(request: Request) {
       }
     }
 
-    const objectToDelete = key.map((keys: any) => ({ Key: keys }));
+    const objectToDelete = key.map((keys: string[]) => ({ Key: keys }));
 
     const command = new DeleteObjectsCommand({
       Bucket: R2_BUCKET_NAME,
