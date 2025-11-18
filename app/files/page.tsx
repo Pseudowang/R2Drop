@@ -169,7 +169,7 @@ export default function FileItem() {
     if (e.target.checked) {
       setSelectedKeys((prev) => [...prev, key]);
     } else {
-      setSelectedKeys((prev) => prev.filter((k) => k! == key));
+      setSelectedKeys((prev) => prev.filter((k) => k !== key));
     }
   };
 
@@ -196,7 +196,7 @@ export default function FileItem() {
     setIsBulkDeleting(true);
     setError(null);
     try {
-      const response = await fetch("api/bulkdelete", {
+      const response = await fetch("/api/bulkdelete", {
         method: "DELETE",
         headers: { "Content-type": "application/json" },
         body: JSON.stringify({ key: selectedKeys }), // 发送 key 数组
