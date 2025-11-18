@@ -4,17 +4,12 @@ import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { formatBytes } from "@/lib/formatBytes";
+import { FileItem } from "@/app/types/file";
+import { useFileOperations } from "@/app/hooks/useFileOperations";
+import { FileTableRow } from "./components/FileTableRow";
 import Link from "next/link";
 
-// 定义文件对象的类型
-interface FileItem {
-  key: string;
-  filename: string;
-  size: number;
-  lastModified: string;
-}
-
-export default function FileItem() {
+export default function FilesPage() {
   const { status } = useSession();
   const router = useRouter();
 
@@ -23,15 +18,22 @@ export default function FileItem() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 下载和删除状态管理
-  const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
-  const [deletingKey, setDeletingKey] = useState<string | null>(null);
+  // 文件操作 Hook（下载/删除/批量删除 与其状态）
+  const {
+    downloadingKey,
+    deletingKey,
+    isBulkDeleting,
+    error: opError, // Hook 的内部错误
+    handleDownload,
+    handleDelete,
+    handleBulkDelete,
+  } = useFileOperations();
 
   // 用于存储选中的Key 数组
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
 
-  // 用于批量删除加载
-  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  // 合并页面获取错误与操作错误，统一展示
+  const mergedError = error || opError;
 
   // 获取文件列表
   useEffect(() => {
@@ -77,11 +79,11 @@ export default function FileItem() {
   }
 
   // 错误状态
-  if (error) {
+  if (mergedError) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
-          <p className="text-lg text-red-600 mb-4">错误: {error}</p>
+          <p className="text-lg text-red-600 mb-4">错误: {mergedError}</p>
           <button
             onClick={() => router.push("/dashboard")}
             className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
@@ -92,64 +94,7 @@ export default function FileItem() {
       </div>
     );
   }
-  // 处理下载
-  const handleDownload = async (key: string, filename: string) => {
-    setDownloadingKey(key);
-    setError(null);
-
-    try {
-      //调用 下载链接
-      const response = await fetch("/api/download", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key }),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`无法获取下载链接: ${error.message}`);
-      }
-
-      const { url } = await response.json();
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error: unknown) {
-      console.error("下载失败: ", error);
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setIsLoading(false);
-      setDownloadingKey(null); //清理下载状态
-    }
-  };
-
-  // 处理删除
-  const handleDelete = async (key: string) => {
-    setDeletingKey(key);
-    setError(null);
-
-    try {
-      // 调用 删除api
-      const response = await fetch("/api/delete", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key }),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`删除文件失败: ${error.message}`);
-      }
-      // 从 UI 实时移除文件
-      setFiles((prevFiles) => prevFiles.filter((file) => file.key !== key));
-    } catch (error: unknown) {
-      console.error("删除失败: ", error);
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setDeletingKey(null);
-    }
-  };
+  // 处理下载/删除逻辑改由 useFileOperations 提供
 
   // 处理单行选中
   const handleSelectRow = (
@@ -172,43 +117,7 @@ export default function FileItem() {
     }
   };
 
-  // 处理批量删除
-  const handleBulkDelete = async () => {
-    if (selectedKeys.length === 0) {
-      setError("请先选择要删除的文件");
-      return;
-    }
-
-    if (!window.confirm(`你确定要删除 ${selectedKeys.length} 个文件吗`)) {
-      return;
-    }
-
-    setIsBulkDeleting(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/bulkdelete", {
-        method: "DELETE",
-        headers: { "Content-type": "application/json" },
-        body: JSON.stringify({ key: selectedKeys }), // 发送 key 数组
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || "批量删除失败");
-      }
-
-      setFiles((prev) =>
-        prev.filter((file) => !selectedKeys.includes(file.key))
-      );
-
-      setSelectedKeys([]);
-    } catch (error: unknown) {
-      console.error("删除失败: ", error);
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setIsBulkDeleting(false);
-    }
-  };
+  // 批量删除逻辑改由 useFileOperations 提供
 
   // 辅助变量: 用于 "全选" 复选框
   const isAllSelected =
@@ -222,7 +131,20 @@ export default function FileItem() {
           <div className="flex space-x-2">
             {selectedKeys.length > 0 && (
               <button
-                onClick={handleBulkDelete}
+                onClick={() =>
+                  handleBulkDelete(selectedKeys, () => {
+                    setFiles((prev) =>
+                      // prev = 当前的文件列表(删除之前的完整列表)
+                      prev.filter(
+                        (file) =>
+                          // 遍历每个文件，检查它是否在 selectedKeys 里
+                          !selectedKeys.includes(file.key)
+                        // 在的话就过滤掉，不在的话就保留
+                      )
+                    );
+                    setSelectedKeys([]);
+                  })
+                }
                 disabled={isBulkDeleting}
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-400"
               >
@@ -242,7 +164,7 @@ export default function FileItem() {
 
         {/* 根据不同状态显示内容 */}
         {isLoading && <p>正在加载文件列表</p>}
-        {error && <p className="text-red-600">错误: {error}</p>}
+        {mergedError && <p className="text-red-600">错误: {mergedError}</p>}
 
         {!isLoading && !error && (
           <div className="overflow-x-auto rounded-lg border border-gray-200">
@@ -287,60 +209,21 @@ export default function FileItem() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {files.length > 0 ? (
                   files.map((file) => (
-                    <tr
+                    <FileTableRow
                       key={file.key}
-                      className={
-                        selectedKeys.includes(file.filename)
-                          ? "bg-indigo-50"
-                          : ""
+                      file={file} //显示哪个文件的信息
+                      isSelected={selectedKeys.includes(file.key)} //这行是否被选中
+                      isDownloading={downloadingKey === file.key} // 是否正在下载中(显示 "下载中")
+                      isDeleting={deletingKey === file.key} //是否正在删除 (显示 "删除中")
+                      isBulkDeleting={isBulkDeleting}
+                      onSelectRow={handleSelectRow} //复选框变化时要做什么
+                      onDownload={handleDownload} // 点击下载按钮时执行的函数
+                      onDelete={(key) =>
+                        handleDelete(key, () =>
+                          setFiles((prev) => prev.filter((f) => f.key !== key))
+                        )
                       }
-                    >
-                      <td className="p-4">
-                        <input
-                          type="checkbox"
-                          className="checkbox checkbox-xs rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                          onChange={(e) => handleSelectRow(e, file.key)}
-                          checked={selectedKeys.includes(file.key)}
-                          disabled={isBulkDeleting}
-                        />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 ">
-                        {file.filename}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatBytes(file.size)}
-                        {/* 使用格式化后的文件大小 */}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(file.lastModified).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div className="flex items-center gap-4">
-                          <button
-                            onClick={() =>
-                              handleDownload(file.key, file.filename)
-                            }
-                            disabled={
-                              downloadingKey === file.key ||
-                              deletingKey === file.key
-                            }
-                            className="cursor-pointer text-indigo-600 hover:text-indigo-900 disabled:text-gray-400 disabled:cursor-wait"
-                          >
-                            {downloadingKey === file.key ? "下载中..." : "下载"}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(file.key)}
-                            disabled={
-                              deletingKey === file.key ||
-                              downloadingKey === file.key
-                            }
-                            className="cursor-pointer text-red-500 hover:text-red-900 disabled:text-gray-400 disabled:cursor-wait"
-                          >
-                            {deletingKey === file.key ? "删除中..." : "删除"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                    />
                   ))
                 ) : (
                   <tr>
