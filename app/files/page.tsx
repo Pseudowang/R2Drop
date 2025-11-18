@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { formatBytes } from "@/lib/formatBytes";
 import Link from "next/link";
 
 // 定义文件对象的类型
@@ -91,17 +92,6 @@ export default function FileItem() {
       </div>
     );
   }
-
-  // 格式化文件大小，因为文件size 返回的是 bytes
-  const formatBytes = (bytes: number, decimals = 2) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
-  };
-
   // 处理下载
   const handleDownload = async (key: string, filename: string) => {
     setDownloadingKey(key);
