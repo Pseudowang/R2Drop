@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -25,6 +25,12 @@ export default function FileItem() {
   // 下载和删除状态管理
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
+
+  // 用于存储选中的Key 数组
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+
+  // 用于批量删除加载
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   // 获取文件列表
   useEffect(() => {
@@ -155,18 +161,93 @@ export default function FileItem() {
     }
   };
 
+  // 处理单行选中
+  const handleSelectRow = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    key: string
+  ) => {
+    if (e.target.checked) {
+      setSelectedKeys((prev) => [...prev, key]);
+    } else {
+      setSelectedKeys((prev) => prev.filter((k) => k! == key));
+    }
+  };
+
+  // 处理全选
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedKeys(files.map((file) => file.key));
+    } else {
+      setSelectedKeys([]);
+    }
+  };
+
+  // 处理批量删除
+  const handleBulkDelete = async () => {
+    if (selectedKeys.length === 0) {
+      setError("请先选择要删除的文件");
+      return;
+    }
+
+    if (!window.confirm(`你确定要删除 ${selectedKeys.length} 个文件吗`)) {
+      return;
+    }
+
+    setIsBulkDeleting(true);
+    setError(null);
+    try {
+      const response = await fetch("api/bulkdelete", {
+        method: "DELETE",
+        headers: { "Content-type": "application/json" },
+        body: JSON.stringify({ key: selectedKeys }), // 发送 key 数组
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "批量删除失败");
+      }
+
+      setFiles((prev) =>
+        prev.filter((file) => !selectedKeys.includes(file.key))
+      );
+
+      setSelectedKeys([]);
+    } catch (error: unknown) {
+      console.error("删除失败: ", error);
+      setError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  // 辅助变量: 用于 "全选" 复选框
+  const isAllSelected =
+    files.length > 0 && selectedKeys.length === files.length;
   // --- 主界面渲染开始 ---
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-50 p-8">
       <div className="w-full max-w-4xl p-8 bg-white rounded-xl shadow-lg">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-800"> 我的文件</h1>
-          <Link
-            href="/dashboard"
-            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus: outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            返回上传
-          </Link>
+          <div className="flex space-x-2">
+            {selectedKeys.length > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                disabled={isBulkDeleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-400"
+              >
+                {isBulkDeleting
+                  ? "删除中..."
+                  : `删除选中(${selectedKeys.length})`}
+              </button>
+            )}
+            <Link
+              href="/dashboard"
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus: outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              返回上传
+            </Link>
+          </div>
         </div>
 
         {/* 根据不同状态显示内容 */}
@@ -178,6 +259,15 @@ export default function FileItem() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th scope="col" className="p-4">
+                    <input
+                      type="checkbox"
+                      className="checkbox checkbox-xs rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      onChange={handleSelectAll}
+                      checked={isAllSelected}
+                      disabled={isBulkDeleting}
+                    />
+                  </th>
                   <th
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide"
@@ -207,8 +297,24 @@ export default function FileItem() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {files.length > 0 ? (
                   files.map((file) => (
-                    <tr key={file.key}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <tr
+                      key={file.key}
+                      className={
+                        selectedKeys.includes(file.filename)
+                          ? "bg-indigo-50"
+                          : ""
+                      }
+                    >
+                      <td className="p-4">
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-xs rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          onChange={(e) => handleSelectRow(e, file.key)}
+                          checked={selectedKeys.includes(file.key)}
+                          disabled={isBulkDeleting}
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 ">
                         {file.filename}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
